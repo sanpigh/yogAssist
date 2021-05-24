@@ -90,3 +90,4 @@ wrapt==1.12.1
 pep8
 selenium
 beautifulsoup4
+autopep8
