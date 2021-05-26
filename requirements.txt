@@ -91,3 +91,6 @@ pep8
 selenium
 beautifulsoup4
 autopep8
+tensorflow
+opencv-python
+opencv-contrib-python
