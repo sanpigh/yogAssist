@@ -3,7 +3,7 @@ import yogAssist.post as post
 import configs.post_config as post_config
 import configs.keypoints_config as kpts_config
 import configs.default_config as def_config
-
+import  matplotlib.pyplot as plt
 post.Skeletonizer.config(kpts_config.KEYPOINTS_DEF, kpts_config.JOINTS_DEF, post_config)
 post.Skeleton.config(kpts_config.KEYPOINTS_DEF, kpts_config.JOINTS_DEF)
 
@@ -17,9 +17,12 @@ class ModelWrapper:
         input_img = tf.image.convert_image_dtype(input_img, dtype=tf.float32)
         input_img /= 255
         input_img = input_img[tf.newaxis, ...]
+        kpts = self.model.predict(input_img)
+
         pafs, kpts = self.model.predict(input_img)
         pafs = pafs[0]
         kpts = kpts[0]
         skeletonizer = post.Skeletonizer(kpts, pafs)
         skeletons = skeletonizer.create_skeletons()
         return skeletons
+

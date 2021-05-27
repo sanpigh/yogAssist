@@ -8,6 +8,7 @@ import numpy as np
 from sys import argv
 
 model_path = "trained_models/model11_test-15Sun1219-2101"
+#model_path = "trained_models/evopose2d_M_f32.h5"
 model_wrapper = ModelWrapper(model_path)
 
 

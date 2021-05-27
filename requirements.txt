@@ -88,9 +88,9 @@ websocket-client==1.0.1
 wrapt==1.12.1
 
 pep8
-selenium
 beautifulsoup4
 autopep8
 tensorflow
 opencv-python
 opencv-contrib-python
+numba
