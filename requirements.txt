@@ -94,3 +94,12 @@ tensorflow
 opencv-python
 opencv-contrib-python
 numba
+pandas 
+pillow
+mlflow
+joblib
+memoized_property 
+tqdm
+termcolor
+tensorflow
+sklearn
