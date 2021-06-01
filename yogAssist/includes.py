@@ -16,3 +16,4 @@ from os import listdir
 from os.path import isfile, isdir, join, \
                     splitext, dirname, basename
 
+from google.cloud import storage

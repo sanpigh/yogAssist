@@ -121,7 +121,6 @@ class DenseNet_pipeline():
     def log_model_params(self):
         # logging layer names
         # todo: loging layer parameters
-         
         for i, l in enumerate(self.model.layers):
             self.mlflow_log_param(f"model_add_layers_{str(i)}", l.name)
         self.mlflow_log_param("model_count_params", str(self.model.count_params()))
@@ -140,9 +139,10 @@ class DenseNet_pipeline():
     
     def log_evaluate_metrics(self, type, value):
         self.mlflow_log_metric(type, value)
+        
     def load_data(self):
         dataLoader = dt.DataLoader()
-        self.train_set, self.val_set, self.test_set = dataLoader.train_val_test_plit()
+        self.train_set, self.val_set, self.test_set = dataLoader.train_val_test_split_ext()
 
     # MLFlow methods
     @memoized_property
@@ -172,6 +172,15 @@ class DenseNet_pipeline():
         """Save the model into a .joblib format"""
         joblib.dump(self.model , 'model.joblib')
         print(colored("model.joblib saved locally", "green"))
+        
+    def save_history_locally(self):
+        """Save the history (dict) into a .csv"""  
+        # convert the history.history dict to a pandas DataFrame:     
+        hist_df = pd.DataFrame(self.history) 
+        #  save to csv 
+        hist_csv_file = 'history.csv'
+        with open(hist_csv_file, mode='w') as f:
+            hist_df.to_csv(f)
 
 if __name__ == "__main__":
     

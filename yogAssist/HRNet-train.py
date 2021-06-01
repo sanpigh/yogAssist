@@ -65,7 +65,7 @@ class HRNet_pipeline(K.layers.Layer):
         
     def load_data(self):
         dataLoader = dt.DataLoader()
-        self.train_set, self.val_set, self.test_set = dataLoader.train_val_test_plit()
+        self.train_set, self.val_set, self.test_set = dataLoader.train_val_test_split()
         
     def first_layer(self, x, scope):
             with tf.name_scope(scope):

@@ -103,3 +103,7 @@ tqdm
 termcolor
 tensorflow
 sklearn
+pydot
+google-cloud-storage
+gcsfs
+opencv-python
