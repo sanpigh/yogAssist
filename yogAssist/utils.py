@@ -18,7 +18,10 @@ def get_image_format(path)->str:
   except:
     return None 
 
-# system utils    
+# system utils
+def base_name(file):
+  return basename(file)
+
 def file_name(file):
   filename, fileextension = splitext(file)
   return filename 
@@ -41,15 +44,19 @@ def couting_corrupted_file_extension(file_list):
 
 def list_of_classes(dataset_root_path):
     return [f for f in listdir(dataset_root_path) if isdir(join(dataset_root_path, f))]
-
+  
+def list_of_files_per_class(class_root_path):
+   tmp = [join(class_root_path, f) for f in listdir(class_root_path) if isfile(join(class_root_path, f))]
+   return tmp
+ 
 def list_of_files(dataset_root_path):
   total_list_of_files = []
   classes = list_of_classes(dataset_root_path)
 
   for class_ in classes:
     class_dir = dataset_root_path + "/" + class_
-    tmp = [join(class_dir, f) for f in listdir(class_dir) if isfile(join(class_dir, f))]
-    total_list_of_files += tmp
+    total_list_of_files += list_of_files(class_dir)
+
   return total_list_of_files
 
 def build_dataframe_from_classes(dataset_root_path):

@@ -1,9 +1,24 @@
 import sys
 
+from tensorflow.python.ops.gen_string_ops import string_join
+
+from configs.default_config import *
+from configs.draw_config import *
+from configs.keypoints_config import *
+from configs.local_storage_config import *
+from configs.post_config import *
+from configs.remote_storage_config import *
+
 sys.path.append("..")
 import numpy as np
 import numba
+import tensorflow as tf
 from numba.experimental import jitclass
+
+import yogAssist.data as dt
+from yogAssist.params import *
+from yogAssist.utils import *
+from yogAssist.ModelWrapper import *
 
 @numba.njit
 def mark_islands(truth_islands) -> (np.ndarray, dict):
@@ -204,11 +219,15 @@ def kpt_paf_alignment(start_kpt, end_kpt, paf_y, paf_x):
 
 class Skeletonizer:
     @classmethod
-    def config(cls, KEYPOINTS_DEF, JOINTS_DEF, post_config):
+    def config(cls, KEYPOINTS_DEF, 
+                    JOINTS_DEF, 
+                    KEYPOINTS_HEATMAP_THRESHOLD,
+                    JOINT_ALIGNMENT_THRESHOLD):
+        
         cls.KEYPOINTS_DEF = KEYPOINTS_DEF
         cls.JOINTS_DEF = JOINTS_DEF
-        cls.KEYPOINTS_HEATMAP_THRESHOLD = post_config.KEYPOINTS_HEATMAP_THRESHOLD
-        cls.JOINT_ALIGNMENT_THRESHOLD = post_config.JOINT_ALIGNMENT_THRESHOLD
+        cls.KEYPOINTS_HEATMAP_THRESHOLD = KEYPOINTS_HEATMAP_THRESHOLD
+        cls.JOINT_ALIGNMENT_THRESHOLD = JOINT_ALIGNMENT_THRESHOLD
 
     def __init__(self, kpts, pafs):
         """
@@ -343,7 +362,10 @@ class Skeletonizer:
         normalized_joint_list = self._normalize_joint_coords(joint_lists)
         skeletons = self._build_skeletons(normalized_joint_list)
         return skeletons
-
+    
+    def load_data(self):
+        dataLoader = dt.DataLoader()
+        self.train_set, self.val_set, self.test_set = dataLoader.train_val_test_split_ext()
 
 class Skeleton:
     @classmethod
@@ -385,3 +407,39 @@ class Skeleton:
             joint_draw(start_coord, end_coord, joint_name)
         for kpt_name, kpt_coord in self.keypoints.items():
             kpt_draw(kpt_coord, kpt_name)
+            
+if __name__ == "__main__":
+    
+    _nb_keypoints=[]
+    j = 0
+    
+    model_path = f"./{MODEL_PATH}/model11_test-15Sun1219-2101"
+    model = ModelWrapper(model_path)
+    
+    Skeletonizer.config(KEYPOINTS_DEF, JOINTS_DEF, \
+                        KEYPOINTS_HEATMAP_THRESHOLD, JOINT_ALIGNMENT_THRESHOLD)
+    Skeleton.config(KEYPOINTS_DEF, JOINTS_DEF)
+    
+    # creates 'batch' per classes (only) 
+    dataLoader = dt.DataLoader()
+    images_ds, files_ds = dataLoader.image_datasets_from_folder_tree(64, False, 368, 368)
+    # iterates on each class to retrieve skeletton heuristics
+    for class_, batch_images in images_ds.items():
+        print(f"predicting for class :{class_} from: {len(batch_images)} images")
+        for i in range(len(batch_images)):
+            pafs, kps  = model.process_image(batch_images[i])
+
+            l_nb_keypoints=[]
+            skeletonizer = Skeletonizer(kps, pafs)
+            skeletons = skeletonizer.create_skeletons()
+            
+            skl = [0]
+            print(f"img: {files_ds[class_][i]} - skeletons :{len(skeletons)}")
+            for skeleton in skeletons:
+                skl.append(len(skeleton.keypoints))
+                print(f"found: .. {max(skl)} connected keypoints")
+            l_nb_keypoints.append(f"{class_},{base_name(files_ds[class_][i])},{max(skl)}\n")
+            with open("keypoints_stat.txt",'a') as f:
+                f.writelines(l_nb_keypoints)
+         
+ 
