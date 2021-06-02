@@ -120,7 +120,7 @@ class YogaJournalScraper():
           'Half Frog Pose' : 'Frog Pose',
           'Revolved Triangle Pose' : 'Extended Revolved Triangle',
           'Pose Dedicated to the Sage Koundinya I' : 'Eka Pada Koundinyanasana I and II',
-          "Bharadvaja’s Twist" : "Bharadvaja's_Twist_pose",
+          "Bharadvaja's Twist" : "Bharadvaja's_Twist_pose",
           'Revolved Side Angle Pose' : 'utthita padangusthasana',
           'Handstand or Downward Facing Tree Pose': 'Adho Mukha Vrksasana',
           'Extended Hand-to-Big-Toe Pose' : 'Utthita Padangusthasana',

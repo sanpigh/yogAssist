@@ -115,6 +115,19 @@ class DataLoader():
                                                     shuffle=False,
                                                     class_names = list_of_classes(self.dataset_test_root_path))
         
+    def load_image_preprocessed(self, path, image_width= 384, image_height= 384, img_to_nparray_flag=False ):
+    
+        if img_to_nparray_flag == True:
+            pic = Image.open(path).convert('RGB')
+            pic = pic.resize((image_width,image_height), Image.BILINEAR)
+            pix_array = np.array(pic).reshape(1, image_width, image_width, 3)
+        else:
+            img = load_img(path, target_size=(image_width,image_height))
+            pix_array = img_to_array(img)
+            #img_batch = np.expand_dims(img_array, axis=0)
+
+        return pix_array
+    
     def image_datasets_from_folder_tree(self,
                                         img_to_nparray_flag=False,
                                         batch_size=32, 
@@ -160,5 +173,7 @@ if __name__ == "__main__":
     dl = DataLoader()
     #dl.create_path_from_gcp()
     df = dl.get_data_as_dataframe()
-    dl.image_datasets_from_folder_tree()
+    #dl.image_datasets_from_folder_tree()
+    for c_ in list_of_classes(f"{BASE_PATH}/{TEST_SUBDIR}"):
+        print(c_)
     print(df.head())

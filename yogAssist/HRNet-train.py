@@ -154,10 +154,10 @@ class HRNet_pipeline(K.layers.Layer):
                     concat = Add()(fuse_list)
                     x = Activation('relu')(concat)
                     fuse_layers.append(x)
-                    # print(‘Assemble’, concat)
+                    # print('Assemble', concat)
                 else:
                     fuse_layers.append(fuse_list[0])
-                    # print(‘Assemble O’, fuse_list[0])
+                    # print('Assemble O', fuse_list[0])
             print('Out', fuse_layers)
         return fuse_layers
 
