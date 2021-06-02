@@ -1,4 +1,7 @@
+from mmap import ACCESS_DEFAULT
 import sys
+import math
+import itertools
 
 from tensorflow.python.ops.gen_string_ops import string_join
 
@@ -19,6 +22,11 @@ import yogAssist.data as dt
 from yogAssist.params import *
 from yogAssist.utils import *
 from yogAssist.ModelWrapper import *
+from yogAssist.scoring import *
+
+# skeleton visualization
+import yogAssist.visualizations as vis
+import configs.draw_config as draw_config
 
 @numba.njit
 def mark_islands(truth_islands) -> (np.ndarray, dict):
@@ -55,7 +63,6 @@ def mark_islands(truth_islands) -> (np.ndarray, dict):
                         island_hierarchy[left] = above
     return islands[1:, 1:], island_hierarchy
 
-
 @numba.njit
 def sort_island_hierarchy(island_hierarchy):
     """converts the hierarchical island dict to a map to the top level island"""
@@ -67,7 +74,6 @@ def sort_island_hierarchy(island_hierarchy):
             parent = island_hierarchy[parent]
         compact[child] = last_parent
     return compact
-
 
 @numba.njit
 def islands_max(heatmap, islands, island_hierarchy):
@@ -99,7 +105,6 @@ def islands_max(heatmap, islands, island_hierarchy):
 
     return peaks_l, islands_max_l
 
-
 @numba.njit
 def find_peaks(heatmap, threshold):
     """This takes a 2D heatmap, and returns all peaks on discontinuous regions (islands) for which the heatmap is above the threshold"""
@@ -111,7 +116,6 @@ def find_peaks(heatmap, threshold):
     peaks, island_max = islands_max(heatmap, segmented_islands, sorted_island_hierarchy)  # get the maximum peak location (and value) for each island
     return peaks  # ,island_max
 
-
 spec = [
         ('field_y', numba.float32[:, :]),
         ('field_x', numba.float32[:, :]),
@@ -119,7 +123,6 @@ spec = [
         ('sum_x', numba.float32),
         # ('num_fields', numba.uint16),
         ]
-
 
 @jitclass(spec)
 class LineVectorIntegral:
@@ -190,7 +193,6 @@ class LineVectorIntegral:
                 self._integrate_line_high(y0, x0, y1, x1)
         return self.sum_y, self.sum_x
 
-
 @numba.njit
 def kpt_paf_alignment(start_kpt, end_kpt, paf_y, paf_x):
     """This creates a score for the PAF field alignment between 2 keypoints
@@ -215,7 +217,6 @@ def kpt_paf_alignment(start_kpt, end_kpt, paf_y, paf_x):
 
     alignment = np.sum(pot_joint_unit_vec * average_paf)  # calc the alignment
     return alignment
-
 
 class Skeletonizer:
     @classmethod
@@ -407,18 +408,8 @@ class Skeleton:
             joint_draw(start_coord, end_coord, joint_name)
         for kpt_name, kpt_coord in self.keypoints.items():
             kpt_draw(kpt_coord, kpt_name)
-            
-if __name__ == "__main__":
-    
-    _nb_keypoints=[]
-    j = 0
-    
-    model_path = f"./{MODEL_PATH}/model11_test-15Sun1219-2101"
-    model = ModelWrapper(model_path)
-    
-    Skeletonizer.config(KEYPOINTS_DEF, JOINTS_DEF, \
-                        KEYPOINTS_HEATMAP_THRESHOLD, JOINT_ALIGNMENT_THRESHOLD)
-    Skeleton.config(KEYPOINTS_DEF, JOINTS_DEF)
+  
+def create_keypoints_for_batch():
     
     # creates 'batch' per classes (only) 
     dataLoader = dt.DataLoader()
@@ -441,5 +432,70 @@ if __name__ == "__main__":
             l_nb_keypoints.append(f"{class_},{base_name(files_ds[class_][i])},{max(skl)}\n")
             with open("keypoints_stat.txt",'a') as f:
                 f.writelines(l_nb_keypoints)
+
+def apply_keypoints_layer_on_image(image, keypoints, skeleton):
+
+    skeleton_drawer = vis.SkeletonDrawer(image, keypoints)
+    
+    skeleton.draw_skeleton(skeleton_drawer.joint_draw,
+                            skeleton_drawer.kpt_draw)
+    image_merged_ = Image.fromarray(image)
+    path_save = "keypoints_" + base_name(image)
+    image_merged_.save(path_save)
+
+        
+if __name__ == "__main__":
+    
+    _nb_keypoints=[]
+    j = 0
+    
+    model_path = f"./{MODEL_PATH}/model11_test-15Sun1219-2101"
+    model = ModelWrapper(model_path)
+    
+    Skeletonizer.config(KEYPOINTS_DEF, JOINTS_DEF, \
+                        KEYPOINTS_HEATMAP_THRESHOLD, JOINT_ALIGNMENT_THRESHOLD)
+    Skeleton.config(KEYPOINTS_DEF, JOINTS_DEF)
+    
+    dataLoader = dt.DataLoader()
+    
+    # 1. load ref image
+    img_ref = dataLoader.load_image_preprocessed('/Users/gwenael-pro/Downloads/Why-You-Should-Practice-the-Warrior-Poses.jpg')
+    pafs_ref, kps_ref  = model.process_image(img_ref)
+    skeletonizer_ref = Skeletonizer(kps_ref, pafs_ref)
+    skeletons_ref = skeletonizer_ref.create_skeletons()    
+    scoring_ref = Scoring(skeletons_ref[0].keypoints)
+    dict_ref = scoring_ref.run()
+    # apply_keypoints_layer_on_image(img_ref,
+    #                                skeletons_ref[0].keypoints,
+    #                                skeletons_ref[0])
+
+    
+    # 2. load candidate image
+    img_candidate = dataLoader.load_image_preprocessed('/Users/gwenael-pro/Downloads/external-content.duckduckgo.com.png')
+    pafs_cand, kps_cand  = model.process_image(img_candidate)
+    skeletonizer_cand = Skeletonizer(kps_cand, pafs_cand)
+    skeletons_cand = skeletonizer_cand.create_skeletons()    
+    scoring_cand = Scoring(skeletons_cand[0].keypoints)
+    dict_cand = scoring_cand.run() 
+    # apply_keypoints_layer_on_image(img_candidate,
+    #                                skeletons_cand[0].keypoints,
+    #                                skeletons_cand[0])
+    
+    for k,v in dict_cand.items():
+        if k in dict_ref.keys():
+            print(f"scoring {k} - {math.degrees(math.acos(dict_ref[k]))} vs {math.degrees(math.acos(v))}")
+
+
+            
+        
+ 
+        
+
+
+    
+
+                      
+
+
          
  
