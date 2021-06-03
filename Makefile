@@ -62,15 +62,12 @@ run_api:
 # ----------------------------------
 
 # project id
-PROJECT_ID=peppy-primacy-309809
+PROJECT_ID=peppy- -309809
 
 # bucket name - replace with your GCP bucket name
 DOCKER_IMAGE_NAME=yogassist
-
-
 REGION=europe-west1
-
-build_docker:
+:
 	-@docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
 	-@docker push eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
 

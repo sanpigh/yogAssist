@@ -34,8 +34,6 @@ class Item(BaseModel):
 
 @app_kpts.post("/keypoints_cosine")
 def upload_image(kpts: Item):  # UploadFile = File(...)):
-    print(kpts.file)
-    print(kpts.name)
     path = f'./assets/{kpts.name}.txt'
     keypoints = extract_keypoints_dictionnary_from_json_api(path)
     scoring_api_1 = Scoring(keypoints, local=False)
@@ -44,7 +42,6 @@ def upload_image(kpts: Item):  # UploadFile = File(...)):
     keypoints_2 = decode_api_dictionnary(kpts.file[0]['keypoints'])
     scoring_api_2 = Scoring(keypoints_2, local=False)
     dict_api_2 = scoring_api_2.run()
-
 
 
     output_json = compute_asana_scoring(scoring_api_1,scoring_api_2)
