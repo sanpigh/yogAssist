@@ -20,8 +20,11 @@ from numba.experimental import jitclass
 
 import yogAssist.data as dt
 from yogAssist.params import *
-from yogAssist.utils import *
+
 from yogAssist.ModelWrapper import *
+from yogAssist.scoring import *
+
+from yogAssist.utils import *
 from yogAssist.scoring import *
 
 # skeleton visualization
