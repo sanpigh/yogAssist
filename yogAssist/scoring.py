@@ -180,8 +180,14 @@ def compute_asana_scoring(self: Scoring,
                 sum_L1 += v2['L1']
                 sum_L2 += v2['L2']
                 current_node_occurence += 1
-        node_mean_[current_node] = {'mean_L1':sum_L1 / current_node_occurence,
-                                    'mean_L2':sum_L2 / current_node_occurence}
+        node_mean_[current_node] = {
+            'mean_L1':
+            sum_L1 /
+            current_node_occurence if current_node_occurence > 0 else 0,
+            'mean_L2':
+            sum_L2 /
+            current_node_occurence if current_node_occurence > 0 else 0
+        }
 
     # compute global scores for node['GLOBAL']
     mean_L1s = 0
@@ -200,8 +206,8 @@ def compute_asana_scoring(self: Scoring,
     for k, v in cosin_sim_diff_.items():
         mean_cosine_similarities_L1 += v['L1']
         mean_cosine_similarities_L2 += v['L2']
-    mean_cosine_similarities_L1 = mean_L1s / number_of_segments
-    mean_cosine_similarities_L2 = mean_L2s / number_of_segments
+    mean_cosine_similarities_L1 = mean_L1s / number_of_segments if number_of_segments>0 else 0
+    mean_cosine_similarities_L2 = mean_L2s / number_of_segments if number_of_segments > 0 else 0
     overall_score_ = {}
     overall_score_['mean_L1s'] = mean_L1s
     overall_score_['mean_L2s'] = mean_L2s
