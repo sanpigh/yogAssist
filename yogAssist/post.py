@@ -481,9 +481,51 @@ if __name__ == "__main__":
     #                                skeletons_cand[0].keypoints,
     #                                skeletons_cand[0])
     
+    import datetime
     for k,v in dict_cand.items():
         if k in dict_ref.keys():
-            print(f"scoring {k} - {math.degrees(math.acos(dict_ref[k]))} vs {math.degrees(math.acos(v))}")
+            print(f"scoring {k} - {cosin_to_degree(dict_ref[k])} vs {cosin_to_degree(v)}")
+    t1 = datetime.datetime.now()
+    output = scoring_ref.compute_asana_scoring(scoring_cand)
+    print(datetime.datetime.now() -t1)
+    print("=========== segments ============")
+    for segment, value in output['segments'].items():
+        print(f"segment name: {segment}")
+        print(value)
+    print("=========== node ============")
+    for node, value in output['segments'].items():
+        print(f"node name: {node}")
+        print(value)
+    print("=========== global ============")
+    for score, value in output['overall'].items():
+        print(f"score name: {score}")
+        print(value)
+        
+    save_output_dictionnary(output,'/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/output.json')
+    
+    # for k,v in dict_cand.items():
+    #     if k in dict_ref.keys():
+    #         print(f"scoring {k} - {cosin_to_degree(dict_ref[k])} vs {cosin_to_degree(v)}")
+            
+    #3. compute cos-sin from PoseNet JSON API
+    #path = '/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/assets/Virasana or Vajrasana.txt'
+    print("")
+    print("compute COSSIM from JSON API")
+    path = '/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/assets/viparita virabhadrasana or reverse warrior pose.txt'
+    keypoints = extract_keypoints_dictionnary_from_json_api(path)
+    scoring_api_1 = Scoring(keypoints, local=False)
+    dict_api_1 = scoring_api_1.run()
+    
+    path_2 = '/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/assets/Chair Pose or Utkatasana.txt'
+    keypoints_2 = extract_keypoints_dictionnary_from_json_api(path_2)
+    scoring_api_2 = Scoring(keypoints_2, local=False)
+    dict_api_2 = scoring_api_2.run() 
+    # for k,v in dict_api.items():
+    #     print(f"key: {k} - value: {cosin_to_degree(dict_api[k])}")
+        
+    output_json = scoring_api_1.compute_asana_scoring(scoring_api_2)
+    save_output_dictionnary(output_json,'/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/output_api.json')
+    
 
 
             
