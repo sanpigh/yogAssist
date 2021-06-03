@@ -73,23 +73,22 @@ class Scoring:
                 continue  
             
             for idx in range(0, number_of_neighbours_):
-                # if end of list, loop on first element
-                idx_next = idx + 1 if idx < number_of_neighbours_ - 1 else 0
-                # create pairs dictionnary
-                cosine_sim_key_entry = f"{keypoint}-({list(keypoint_attr['neighbours'].keys())[idx]}, {list(keypoint_attr['neighbours'].keys())[idx_next]})"
-                # create A, B , C points
-                dot_A_vect = keypoint_attr[keypoint]
-                dot_B_vect = list(keypoint_attr['neighbours'].values())[idx]
-                dot_C_vect = list(keypoint_attr['neighbours'].values())[idx_next] 
-                # compute ((xB - xA), (yB, yA))     
-                pair_1_scalar_vectors = (dot_B_vect[0]-dot_A_vect[0], 
-                                        dot_B_vect[1]-dot_A_vect[1])
-                # compute ((xC - xA), (yC yA))  
-                pair_2_scalar_vectors = (dot_C_vect[0]-dot_A_vect[0], 
-                                        dot_C_vect[1]-dot_A_vect[1])
-                #pairs_dict
-                cosin_sim_dict[cosine_sim_key_entry] = compute_cosine_sim(np.asarray(pair_1_scalar_vectors),
-                                                                        np.asarray(pair_2_scalar_vectors))
+                for idx_next in range(idx+1, number_of_neighbours_):
+                    # create pairs dictionnary
+                    cosine_sim_key_entry = f"{keypoint}-({list(keypoint_attr['neighbours'].keys())[idx]}, {list(keypoint_attr['neighbours'].keys())[idx_next]})"
+                    # create A, B , C points
+                    dot_A_vect = keypoint_attr[keypoint]
+                    dot_B_vect = list(keypoint_attr['neighbours'].values())[idx]
+                    dot_C_vect = list(keypoint_attr['neighbours'].values())[idx_next] 
+                    # compute ((xB - xA), (yB, yA))     
+                    pair_1_scalar_vectors = (dot_B_vect[0]-dot_A_vect[0], 
+                                            dot_B_vect[1]-dot_A_vect[1])
+                    # compute ((xC - xA), (yC yA))  
+                    pair_2_scalar_vectors = (dot_C_vect[0]-dot_A_vect[0], 
+                                            dot_C_vect[1]-dot_A_vect[1])
+                    #pairs_dict
+                    cosin_sim_dict[cosine_sim_key_entry] = compute_cosine_sim(np.asarray(pair_1_scalar_vectors),
+                                                                            np.asarray(pair_2_scalar_vectors))
         return cosin_sim_dict
     
     def print_cosin_sim_dict(self, cosin_sim_dict):
