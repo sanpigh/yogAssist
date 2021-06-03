@@ -1,14 +1,16 @@
 
-from yogAssist.includes import *
-from yogAssist.params import *
-
 # dealing with strings, requests, regex...
 import re
 from urllib.parse import urlparse
 
 import requests
+import json
 from tqdm.notebook import tqdm
 from PIL import Image
+import math
+
+from yogAssist.includes import *
+from yogAssist.params import *
 
  # image utils               
 def get_image_format(path)->str:
@@ -78,4 +80,50 @@ def get_mlflow_expirement_url():
     experiment_id = MlflowClient().get_experiment_by_name(f"{EXPERIMENT_NAME}").experiment_id
     #return f"{EXPERIMENT_NAME}"
     return f"{MLFLOW_URI}/#/experiments/{experiment_id}"
+  
+# open json file and return (only first occurence...) of list of keypoints dictionnary
+def read_asana_reference_file(path:str):
+  with open(path) as json_file:
+      data = json.load(json_file)
+      return data[0]['keypoints']
+    
+def save_output_dictionnary(dict, path):
+  with open(path, 'w') as fp:
+    json.dump(dict, fp)
+  
+          
+def decode_api_dictionnary(list_of_keypoints: list, confidence_threshold = 0.15):
+  list_of_keypoints_dict = {}
+  for keypoint in list_of_keypoints:
+    if keypoint['score'] > confidence_threshold:
+      list_of_keypoints_dict[keypoint['part']] = (keypoint['position']['x'], keypoint['position']['y'])
+  return list_of_keypoints_dict
 
+def extract_keypoints_dictionnary_from_json_api(path, confidence_threshold = 0.15):
+  list_of_keypoints = read_asana_reference_file(path)
+  return decode_api_dictionnary(list_of_keypoints, confidence_threshold)
+
+# scoring maths
+def compute_cosine(AB, AC):
+    # cosine similarity between A and B
+    cos_sim=np.dot(AB,AC)/(np.linalg.norm(AB)*np.linalg.norm(AC))
+    return cos_sim
+
+def cosin_to_degree(cosin_):
+  return math.degrees(math.acos(cosin_))
+
+def compute_cosine_sim_L1(Theta_1, Theta_2, convert_to_degree = True):
+  return 180 - abs(abs(cosin_to_degree(Theta_2) - cosin_to_degree(Theta_1)) - 180)
+
+def compute_cosine_sim_L2(Theta_1, Theta_2, convert_to_degree = True):
+  return  math.pow(cosin_to_degree(Theta_2) - cosin_to_degree(Theta_1),2)
+
+if __name__ == "__main__":
+  
+  #path = '/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/assets/Virasana or Vajrasana.txt'
+  path = '/Users/gwenael-pro/code/DataGwen/le-wagon/yogAssist/assets/viparita virabhadrasana or reverse warrior pose.txt'
+  list_of_keypoints = read_asana_reference_file(path)
+  list_of_keypoints_dict = decode_api_dictionnary(list_of_keypoints)
+  for k, v in list_of_keypoints_dict.items():
+    print(k)
+    print(v)

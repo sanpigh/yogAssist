@@ -1,10 +1,11 @@
 import itertools
 import numpy as np
+from yogAssist.utils import *
 
 KPTS_TO_NEIGHBOURS_DEF = {  'nose':['sternum'],
                             'sternum':['nose','Rshoulder','Rhip','Lhip','Lshoulder'],
-                            'Rshoulder':['Relbow','sternum', 'Lshoulder'],
-                            'Lshoulder':['Relbow','sternum', 'Rshoulder'],
+                            'Rshoulder':['Relbow','Rhip', 'sternum', 'Lshoulder'],
+                            'Lshoulder':['Lelbow','Lhip', 'sternum', 'Rshoulder'],
                             'Relbow':['Rshoulder', 'Rwrist'],
                             'Lelbow':['Lshoulder', 'Lwrist'],
                             'Rwrist':['Relbow'],
@@ -16,17 +17,27 @@ KPTS_TO_NEIGHBOURS_DEF = {  'nose':['sternum'],
                             'Rankle':['Rknee'],
                             'Lankle':['Lknee']}
 
-def compute_cosine_sim(AB, AC):
-    # cosine similarity between A and B
-    cos_sim=np.dot(AB,AC)/(np.linalg.norm(AB)*np.linalg.norm(AC))
-    return cos_sim
-
+KPTS_TO_NEIGHBOURS_DEF_API = {  'nose':['rightShoulder', 'leftShoulder'],
+                                'rightShoulder':['rightElbow','leftShoulder', 'rightHip'],
+                                'leftShoulder':['leftElbow','rightShoulder', 'leftHip'],
+                                'rightElbow':['rightShoulder', 'rightWrist'],
+                                'leftElbow':['leftShoulder', 'leftWrist'],
+                                'rightWrist':['rightElbow'],
+                                'leftWrist':['leftElbow'],
+                                'rightHip':['leftHip', 'rightShoulder', 'rightKnee'],
+                                'leftHip':['rightHip', 'leftShoulder', 'leftKnee'],
+                                'rightKnee':['rightHip', 'rightAnkle'],
+                                'leftKnee':['leftHip', 'leftAnkle'],
+                                'rightAnkle':['rightKnee'],
+                                'leftAnkle':['leftKnee']}
 class Scoring:
     
-    kpts_to_neighbor_dict = KPTS_TO_NEIGHBOURS_DEF
+    kpts_to_neighbor_dict_model_embedded = KPTS_TO_NEIGHBOURS_DEF
+    kpts_to_neighbor_dict_js_api = KPTS_TO_NEIGHBOURS_DEF_API
         
-    def __init__(self, keypoints):
+    def __init__(self, keypoints, local=True):
         self.keypoints = keypoints
+        self.kpts_to_neighbor_dict =  self.kpts_to_neighbor_dict_model_embedded if local else self.kpts_to_neighbor_dict_js_api
     
     def get_coordinates(self, node_name):
         coord = []
@@ -87,8 +98,8 @@ class Scoring:
                     pair_2_scalar_vectors = (dot_C_vect[0]-dot_A_vect[0], 
                                             dot_C_vect[1]-dot_A_vect[1])
                     #pairs_dict
-                    cosin_sim_dict[cosine_sim_key_entry] = compute_cosine_sim(np.asarray(pair_1_scalar_vectors),
-                                                                            np.asarray(pair_2_scalar_vectors))
+                    cosin_sim_dict[cosine_sim_key_entry] = compute_cosine(np.asarray(pair_1_scalar_vectors),
+                                                                          np.asarray(pair_2_scalar_vectors))
         return cosin_sim_dict
     
     def print_cosin_sim_dict(self, cosin_sim_dict):
@@ -120,6 +131,93 @@ class Scoring:
         cosin_sim_dict = {}
         # kpts_to_neighbor_predict = self.compute_kpts_to_neighbor_from_ref_dictionnary()
         # self.print_kpts_to_neighbor_predict(kpts_to_neighbor_predict)
-        cosin_sim_dict = self.compute_cosine_similarities()
+        self.cosin_sim_dict = self.compute_cosine_similarities()
         #self.print_cosin_sim_dict(cosin_sim_dict)
-        return cosin_sim_dict
+        return self.cosin_sim_dict
+    
+    # THE/ZE SCORING ALGORITHM
+    def compute_asana_scoring(self, another_scoring_instance: object ) -> dict:
+        
+        cosin_sim_dict_A = self.cosin_sim_dict
+        cosin_sim_dict_B = another_scoring_instance.cosin_sim_dict
+        
+        # create dictionnary of cosin_sim_diff_ for node['SEGMENT']
+        cosin_sim_diff_= {}
+        
+        for k,v in cosin_sim_dict_A.items():
+            if k in cosin_sim_dict_B.keys():
+                segment_cos_sim = {}
+                node_, pair_ = k.split('-')
+                pair_ = pair_.replace('(','').replace(')','')
+                pair_1 = pair_.split(', ')[0]
+                pair_2 = pair_.split(', ')[1]
+                l = sorted([pair_1,pair_2])
+                key = f"{node_}-{l[0]}|{l[1]}"
+ 
+                segment_cos_sim['L1'] = compute_cosine_sim_L1( v, cosin_sim_dict_B[k])
+                segment_cos_sim['L2'] = compute_cosine_sim_L2( v, cosin_sim_dict_B[k])
+                cosin_sim_diff_[key] = segment_cos_sim
+                
+        # create dictionnary for node['NODE'], a node based information for mean of cosin_sim per nodes
+        node_mean_ = {}
+        for k,v in cosin_sim_diff_.items():
+            # identify carrying node
+            current_node = k.split('-')[0]
+            # skip if already computed
+            if current_node in list(node_mean_.keys()):
+                continue
+            # count current_node_occurence
+            sum_L1 = 0
+            sum_L2 = 0
+            current_node_occurence = 0
+            for k2, v2 in cosin_sim_diff_.items():
+                if current_node == k2.split('-')[0]:
+                    sum_L1 += v2['L1']
+                    sum_L2 += v2['L2']
+                    current_node_occurence += 1
+            node_mean_[current_node] = {'mean_L1':sum_L1 / current_node_occurence, 
+                                        'mean_L2':sum_L2 / current_node_occurence}
+            
+        # compute global scores for node['GLOBAL']
+        mean_L1s = 0
+        mean_L2s = 0
+        number_of_nodes = len(list(node_mean_.keys()))
+        for k, v in node_mean_.items():
+            mean_L1s += v['mean_L1']
+            mean_L2s += v['mean_L2']
+        mean_L1s = mean_L1s / number_of_nodes
+        mean_L2s = mean_L2s / number_of_nodes
+        
+        mean_cosine_similarities_L1 = 0
+        mean_cosine_similarities_L2 = 0
+        number_of_segments = len(list(node_mean_.keys()))
+        for k, v in cosin_sim_diff_.items():
+            mean_cosine_similarities_L1 += v['L1']
+            mean_cosine_similarities_L2 += v['L2']
+        mean_cosine_similarities_L1 = mean_L1s / number_of_segments
+        mean_cosine_similarities_L2 = mean_L2s / number_of_segments
+        overall_score_ = {}
+        overall_score_['mean_L1s'] = mean_L1s
+        overall_score_['mean_L2s'] = mean_L2s
+        overall_score_['mean_cosine_similarities_L1'] = mean_cosine_similarities_L1
+        overall_score_['mean_cosine_similarities_L2'] = mean_cosine_similarities_L2
+        
+        #collecting dictionnaries into 1
+        output_ = {}
+        output_['segments'] = cosin_sim_diff_  
+        output_['nodes']    = node_mean_
+        output_['overall']  = overall_score_
+        return output_
+        
+        
+        
+        
+        
+
+        
+        
+                    
+                    
+                
+
+    
