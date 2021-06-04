@@ -15,5 +15,8 @@ COPY configs /configs
 
 COPY credentials.json /credentials.json
 
+COPY assets /api/assets
+COPY assets /yogAssist/assets
+COPY assets /assets
 
 CMD uvicorn api.fast_kpts:app_kpts --host 0.0.0.0 --port $PORT

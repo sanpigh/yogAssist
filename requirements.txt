@@ -88,16 +88,10 @@ websocket-client==1.0.1
 wrapt==1.12.1
 
 pep8
-beautifulsoup4
 autopep8
-tensorflow
-opencv-python
-opencv-contrib-python
-numba
 pandas
+numpy
 pillow
-mlflow
-joblib
 memoized_property
 termcolor
 pydot

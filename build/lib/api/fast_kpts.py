@@ -6,7 +6,6 @@ import json
 from yogAssist.utils import extract_keypoints_dictionnary_from_json_api
 from yogAssist.scoring import Scoring, compute_asana_scoring
 from yogAssist.utils import decode_api_dictionnary
-import os
 
 app_kpts = FastAPI()
 
@@ -34,7 +33,7 @@ class Item(BaseModel):
 
 @app_kpts.post("/keypoints_cosine")
 def upload_image(kpts: Item):  # UploadFile = File(...)):
-    path = os.path.join(os.path.dirname(__file__), '..', 'assets',f'{kpts.name.replace(" ","_").replace("(","").replace(")","")}.txt')
+    path = f'./assets/{kpts.name}.txt'
     keypoints = extract_keypoints_dictionnary_from_json_api(path)
     scoring_api_1 = Scoring(keypoints, local=False)
     dict_api_1 = scoring_api_1.run()
